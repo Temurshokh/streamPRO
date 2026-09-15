@@ -1,11 +1,11 @@
 {
   "name": "streampro",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node backend/server-v2.js",
-    "start": "node backend/server-v2.js"
+    "dev": "node backend/server-v3.js",
+    "start": "node backend/server-v3.js"
   },
   "engines": {
     "node": ">=24 <25"
