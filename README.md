@@ -1,20 +1,23 @@
 # streamPRO
 
-Web-controlled streaming engine prototype.
+Server-driven YouTube live streaming control panel.
 
-## v0.1 goals
-- Node.js backend
-- Browser dashboard
-- In-memory stream state (no database)
-- FFmpeg process controller
-- YouTube Live integration hooks
-- YouTube chat event handling hooks
+## v0.2 goals
+- Node.js API + WebSocket
+- In-memory game state (no database)
+- YouTube Live Chat polling adapter
+- FFmpeg stream controller with reconnect support
+- Dynamic text overlay state for country counters
+- Simple web dashboard
 
-## Local development
+> Never commit `.env` or a real YouTube stream key/API key.
 
+## Local
 ```bash
 npm install
-npm run dev
+copy .env.example .env
+npm start
 ```
+Open `http://localhost:3000`.
 
-See `.env.example` for configuration.
+FFmpeg must be installed and available as `ffmpeg` in PATH, or set `FFMPEG_PATH`.
