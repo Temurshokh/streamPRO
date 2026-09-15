@@ -3,10 +3,13 @@ services:
     name: streampro-api
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: apt-get update && apt-get install -y ffmpeg && npm install
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
-      - key: PORT
-        value: 3000
+      - key: NODE_VERSION
+        value: 22
       - key: FFMPEG_PATH
-        value: ffmpeg
+        value: /usr/bin/ffmpeg
+      - key: CHAT_POLL
+        value: "true"
