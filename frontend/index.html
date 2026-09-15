@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>streamPRO</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; background: #0b0c10; color: #f5f7fa; }
+    main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
+    .brand { font-size: 28px; font-weight: 800; letter-spacing:-.04em; }
+    .status { padding:8px 12px; border-radius:999px; background:#191c22; }
+    .grid { display:grid; grid-template-columns: 1.5fr 1fr; gap:18px; }
+    .card { background:#12151b; border:1px solid #242833; border-radius:18px; padding:20px; box-shadow:0 10px 30px #0003; }
+    h2 { margin-top:0; }
+    button { border:0; border-radius:12px; padding:11px 16px; margin-right:8px; cursor:pointer; font-weight:700; }
+    .start { background:#e8eef7; color:#0b0c10; }
+    .stop { background:#2a2f39; color:#fff; }
+    input { width:100%; box-sizing:border-box; background:#0d1015; color:#fff; border:1px solid #2b313d; border-radius:12px; padding:12px; margin:8px 0; }
+    #countries div { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1f232c; }
+    .muted { color:#8f98a8; }
+    pre { white-space:pre-wrap; word-break:break-word; background:#0d1015; padding:12px; border-radius:12px; }
+    @media (max-width: 800px) { .grid { grid-template-columns:1fr; } main { padding:18px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">streamPRO</div>
+    <div id="status" class="status">● OFFLINE</div>
+  </header>
+  <div class="grid">
+    <section class="card">
+      <h2>Stream Control</h2>
+      <p class="muted">The UI controls the backend. No database required for v0.1.</p>
+      <button class="start" id="start">Start stream</button>
+      <button class="stop" id="stop">Stop stream</button>
+      <p>PID: <span id="pid">—</span></p>
+      <p>Started: <span id="started">—</span></p>
+    </section>
+    <section class="card">
+      <h2>Chat → Game</h2>
+      <form id="chatForm">
+        <input id="chat" placeholder="Type a country, e.g. Uzbekistan" autocomplete="off" />
+        <button class="start">Send test message</button>
+      </form>
+      <p class="muted">This simulates a YouTube chat message until the YouTube API adapter is added.</p>
+      <p>Last message: <strong id="last">—</strong></p>
+    </section>
+    <section class="card">
+      <h2>Countries</h2>
+      <div id="countries"></div>
+    </section>
+    <section class="card">
+      <h2>Backend</h2>
+      <pre id="log">Connecting…</pre>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const render = (state) => {
+  const s = state.stream;
+  $('status').textContent = s.running ? '● LIVE' : '● OFFLINE';
+  $('pid').textContent = s.pid ?? '—';
+  $('started').textContent = s.startedAt ?? '—';
+  $('last').textContent = state.game.lastMessage ?? '—';
+  const entries = Object.entries(state.game.countries).sort((a,b) => b[1] - a[1]);
+  $('countries').innerHTML = entries.length ? entries.map(([name,count]) => `<div><span>${escapeHtml(name)}</span><strong>${count}</strong></div>`).join('') : '<span class="muted">No messages yet</span>';
+  $('log').textContent = JSON.stringify(state, null, 2);
+};
+const escapeHtml = (text) => String(text).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'&#92;','"':'&quot;'}[c]));
+async function refresh() { const r = await fetch('/api/state'); render(await r.json()); }
+$('start').onclick = async () => { await fetch('/api/stream/start', {method:'POST'}); refresh(); };
+$('stop').onclick = async () => { await fetch('/api/stream/stop', {method:'POST'}); refresh(); };
+$('chatForm').onsubmit = async (e) => { e.preventDefault(); const message = $('chat').value.trim(); if (!message) return; await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message})}); $('chat').value=''; };
+const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+const ws = new WebSocket(wsUrl);
+ws.onmessage = (event) => { const payload = JSON.parse(event.data); if (payload.type === 'state') render(payload.data); else refresh(); };
+ws.onopen = () => { $('log').textContent = 'WebSocket connected'; refresh(); };
+ws.onclose = () => { $('log').textContent = 'WebSocket disconnected'; };
+</script>
+</body>
+</html>
