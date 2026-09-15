@@ -14,9 +14,9 @@ const game = createGameState();
 
 function overlayText() {
   const rows = game.leaderboard.length
-    ? game.leaderboard.slice(0, 10).map((item, index) => `${index + 1}. ${item.flag} ${item.name}: ${item.count}`)
+    ? game.leaderboard.slice(0, 10).map((item, index) => `${index + 1}. ${item.name}: ${item.count}`)
     : ['No countries yet', 'Write your country in chat!'];
-  return ['🌎 WHERE ARE YOU FROM?', '', ...rows, '', `Messages: ${game.totalMessages}`, `Accepted: ${game.acceptedMessages}`].join('\\n');
+  return ['STREAMPRO - WHERE ARE YOU FROM?', '', ...rows, '', `Messages: ${game.totalMessages}`, `Accepted: ${game.acceptedMessages}`].join('\n');
 }
 
 const stream = new StreamManager({
