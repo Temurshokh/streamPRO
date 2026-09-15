@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: streampro-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: FFMPEG_PATH
+        value: ffmpeg
