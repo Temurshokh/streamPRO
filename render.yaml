@@ -13,3 +13,5 @@ services:
         value: ffmpeg
       - key: CHAT_POLL
         value: "true"
+      - key: STUDIO_TOKEN
+        sync: false
