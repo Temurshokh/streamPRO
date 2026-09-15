@@ -1,11 +1,14 @@
 {
   "name": "streampro",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node backend/server.js",
-    "start": "node backend/server.js"
+    "dev": "node backend/server-v2.js",
+    "start": "node backend/server-v2.js"
+  },
+  "engines": {
+    "node": ">=24 <25"
   },
   "dependencies": {
     "cors": "^2.8.5",
