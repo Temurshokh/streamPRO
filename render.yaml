@@ -1,15 +1,15 @@
 services:
   - type: web
     name: streampro-api
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: apt-get update && apt-get install -y ffmpeg && npm install
-    startCommand: npm start
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        value: 22
+        value: 24
       - key: FFMPEG_PATH
-        value: /usr/bin/ffmpeg
+        value: ffmpeg
       - key: CHAT_POLL
         value: "true"
