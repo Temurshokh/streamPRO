@@ -1,0 +1,6 @@
+{
+  "stable": {"label":"Stable","quality":"720p","fps":30,"latency":"normal"},
+  "balanced": {"label":"Balanced","quality":"1080p","fps":30,"latency":"low"},
+  "realtime": {"label":"Real-time","quality":"1080p60","fps":60,"latency":"ultra"},
+  "quality": {"label":"High quality","quality":"1440p","fps":30,"latency":"normal"}
+}
