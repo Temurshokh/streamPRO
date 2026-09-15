@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>streamPRO Studio</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f5f7fb;background:#07080c}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 0%,#202536 0,#0b0d13 35%,#06070a 70%);color:#f5f7fb}button,input,select{font:inherit}.shell{max-width:1200px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#fff,#8f9cff)}.title{font-weight:850;font-size:24px;letter-spacing:-.04em}.sub{color:#8790a3;font-size:13px}.nav{display:flex;gap:8px;flex-wrap:wrap}.nav a{color:#cfd5e3;text-decoration:none;border:1px solid #282e3b;background:#10131a;border-radius:10px;padding:9px 11px;font-weight:750;font-size:12px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.card{background:#0e1118cc;border:1px solid #222734;border-radius:20px;padding:20px;box-shadow:0 18px 60px #0005}.full{grid-column:1/-1}.sectionTitle{font-weight:850;font-size:14px;color:#dfe3ec;margin-bottom:14px}.muted{color:#7e8799;font-size:12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin-bottom:12px}.field label{display:block;font-size:11px;color:#8e97a9;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}.input,.select{width:100%;background:#090b10;color:#fff;border:1px solid #282e3b;border-radius:11px;padding:11px 12px}.btn{border:1px solid #2a303e;background:#161a23;color:#fff;padding:11px 15px;border-radius:12px;font-weight:850;cursor:pointer}.btn.primary{background:#eef2ff;color:#080a10;border-color:#eef2ff}.btn.danger{background:#32171b;border-color:#5b2830}.actions{display:flex;gap:8px;flex-wrap:wrap}.notice{padding:12px;border-radius:12px;background:#141821;border:1px solid #262d3b;color:#aab2c2;font-size:12px;line-height:1.5}.status{display:inline-flex;align-items:center;gap:8px;border:1px solid #2a303e;background:#10131a;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800}.ok{color:#b8ffce;border-color:#1f7040;background:#0c1d13}.bad{color:#ffb9c0;border-color:#71303a;background:#221014}.profileGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.profile{border:1px solid #272d3a;background:#0a0d12;border-radius:14px;padding:12px;cursor:pointer}.profile b{display:block;font-size:13px;margin-bottom:4px}.profile span{color:#7f8898;font-size:11px}.profile.active{border-color:#8793ff;box-shadow:0 0 0 1px #8793ff33 inset}.check{display:flex;align-items:center;gap:8px;font-size:13px}.check input{accent-color:#8e98ff}@media(max-width:900px){.grid{grid-template-columns:1fr}.profileGrid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.shell{padding:14px}.row{grid-template-columns:1fr}.profileGrid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><div class="logo"></div><div><div class="title">streamPRO Studio</div><div class="sub">Private control center · server-side credentials</div></div></div>
+    <div class="nav"><a href="./index.html">Dashboard</a><a href="./view.html" target="_blank">Public view</a><span id="status" class="status">● DISCONNECTED</span></div>
+  </header>
+
+  <div class="grid">
+    <section class="card full">
+      <div class="sectionTitle">CONNECTION</div>
+      <div class="notice">Secrets entered here are sent to your backend over HTTPS and are not returned by the backend. Runtime settings live in memory; Render restarts can clear them, so permanent secrets should still be configured in Render Environment Variables.</div>
+      <div style="height:14px"></div>
+      <div class="row">
+        <div class="field"><label>Studio token</label><input class="input" id="token" type="password" placeholder="Your STUDIO_TOKEN" autocomplete="off"></div>
+        <div class="field"><label>YouTube API key</label><input class="input" id="apiKey" type="password" placeholder="AIza..." autocomplete="off"></div>
+        <div class="field"><label>YouTube Video ID</label><input class="input" id="videoId" placeholder="Live video ID" autocomplete="off"></div>
+        <div class="field"><label>Live Chat ID (optional)</label><input class="input" id="chatId" placeholder="Auto-resolve from Video ID" autocomplete="off"></div>
+        <div class="field"><label>YouTube OAuth access token (optional)</label><input class="input" id="oauth" type="password" placeholder="For authenticated YouTube operations" autocomplete="off"></div>
+        <div class="field"><label>RTMPS stream URL</label><input class="input" id="output" placeholder="rtmps://.../live2" autocomplete="off"></div>
+        <div class="field"><label>Stream key</label><input class="input" id="streamKey" type="password" placeholder="Your YouTube stream key" autocomplete="off"></div>
+        <div class="field"><label>Input source</label><input class="input" id="input" placeholder="Local file or network input" value="./media/sample.mp4" autocomplete="off"></div>
+      </div>
+      <div class="actions"><button class="btn primary" id="save">Save connection</button><button class="btn" id="check">Test connection</button><button class="btn danger" id="clear">Clear runtime secrets</button></div>
+      <div style="height:10px"></div><div id="result" class="muted">Backend status will appear here.</div>
+    </section>
+
+    <section class="card">
+      <div class="sectionTitle">OUTPUT PROFILE</div>
+      <div class="profileGrid" id="profiles"></div>
+      <div style="height:16px"></div>
+      <div class="row">
+        <div class="field"><label>Resolution</label><select class="select" id="resolution"><option>640x360</option><option>854x480</option><option>1280x720</option><option selected>1920x1080</option><option>2560x1440</option><option>3840x2160</option></select></div>
+        <div class="field"><label>FPS</label><select class="select" id="fps"><option>10</option><option>15</option><option>24</option><option>30</option><option selected>60</option></select></div>
+        <div class="field"><label>Latency</label><select class="select" id="latency"><option value="normal" selected>Normal</option><option value="low">Low</option><option value="ultra">Ultra low</option></select></div>
+        <div class="field"><label>Bitrate</label><input class="input" id="bitrate" value="8000k"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="overlay" checked> Enable dynamic overlay</label>
+    </section>
+
+    <section class="card">
+      <div class="sectionTitle">ENGINE</div>
+      <div class="row">
+        <div class="field"><label>Encoder preset</label><select class="select" id="preset"><option>ultrafast</option><option>superfast</option><option selected>veryfast</option><option>faster</option><option>fast</option><option>medium</option></select></div>
+        <div class="field"><label>Keyframe interval</label><select class="select" id="keyframe"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div>
+      </div>
+      <div class="notice">The studio can refuse impossible combinations before FFmpeg starts. 4K + ultra-low latency is intentionally blocked; use a lower resolution for real-time modes.</div>
+    </section>
+
+    <section class="card full">
+      <div class="sectionTitle">STREAM ACTIONS</div>
+      <div class="actions"><button class="btn primary" id="start">Start stream</button><button class="btn danger" id="stop">Stop stream</button><button class="btn" id="chatStart">Connect chat</button><button class="btn" id="chatStop">Disconnect chat</button></div>
+      <div style="height:12px"></div><div id="summary" class="muted">Not configured.</div>
+    </section>
+  </div>
+</div>
+<script src="./config.js"></script>
+<script>
+const $=id=>document.getElementById(id); const API_BASE=String(window.STREAMPRO_CONFIG?.API_BASE||'').replace(/\/$/,''); const api=p=>API_BASE+p;
+const profiles=[
+  ['Stable','720p','30','normal','4500k'],
+  ['Balanced','1080p','30','normal','6000k'],
+  ['Smooth','1080p','60','low','9000k'],
+  ['Real-time','720p','60','ultra','6500k'],
+  ['Detail','1440p','60','normal','16000k']
+];
+let selected='Balanced';
+for(const [name] of profiles){const d=document.createElement('button');d.type='button';d.className='profile';d.innerHTML=`<b>${name}</b><span>Ready preset</span>`;d.onclick=()=>{selected=name;document.querySelectorAll('.profile').forEach(x=>x.classList.remove('active'));d.classList.add('active');applyProfile(name)};$('profiles').appendChild(d);if(name===selected)d.classList.add('active')}
+function applyProfile(name){const p=profiles.find(x=>x[0]===name);if(!p)return;const map={"720p":["1280x720"],"1080p":["1920x1080"],"1440p":["2560x1440"]};if(map[p[1]])$('resolution').value=map[p[1]][0];$('fps').value=p[2];$('latency').value=p[3];$('bitrate').value=p[4]}
+function headers(){const t=$('token').value.trim();return t?{'X-Studio-Token':t}:{} }
+function patch(){const [w,h]=$('resolution').value.split('x').map(Number);return {YOUTUBE_API_KEY:$('apiKey').value.trim(),YOUTUBE_VIDEO_ID:$('videoId').value.trim(),YOUTUBE_LIVE_CHAT_ID:$('chatId').value.trim(),YOUTUBE_OAUTH_ACCESS_TOKEN:$('oauth').value.trim(),STREAM_OUTPUT:$('output').value.trim(),YOUTUBE_STREAM_KEY:$('streamKey').value.trim(),STREAM_INPUT:$('input').value.trim(),STREAM_WIDTH:w,STREAM_HEIGHT:h,STREAM_FPS:Number($('fps').value),STREAM_LATENCY_MODE:$('latency').value,STREAM_BITRATE:$('bitrate').value.trim(),STREAM_PRESET:$('preset').value,STREAM_KEYFRAME:Number($('keyframe').value),STREAM_OVERLAY_ENABLED:$('overlay').checked}}
+async function post(path,body){const r=await fetch(api(path),{method:'POST',headers:{'Content-Type':'application/json',...headers()},body:JSON.stringify(body)});const text=await r.text();let data;try{data=JSON.parse(text)}catch{data={raw:text}}if(!r.ok)throw new Error(data.error||`Request failed (${r.status})`);return data}
+$('save').onclick=async()=>{try{const data=await post('/api/config',{config:patch()});$('result').textContent='Saved runtime connection settings.';renderStatus(data)}catch(e){$('result').textContent=e.message}};
+$('check').onclick=async()=>{try{const data=await post('/api/config/test',{});$('result').textContent=data.message||'Connection test passed.';renderStatus(data)}catch(e){$('result').textContent=e.message}};
+$('clear').onclick=async()=>{try{await post('/api/config/clear',{});$('result').textContent='Runtime secrets cleared.';load()}catch(e){$('result').textContent=e.message}};
+$('start').onclick=async()=>{try{const data=await post('/api/stream/start',{config:patch()});$('result').textContent=`Stream started (PID ${data.pid??'—'}).`;load()}catch(e){$('result').textContent=e.message}};
+$('stop').onclick=async()=>{try{await post('/api/stream/stop',{});$('result').textContent='Stream stopped.';load()}catch(e){$('result').textContent=e.message}};
+$('chatStart').onclick=async()=>{try{await post('/api/chat/start',{});$('result').textContent='YouTube chat connected.';load()}catch(e){$('result').textContent=e.message}};
+$('chatStop').onclick=async()=>{try{await post('/api/chat/stop',{});$('result').textContent='YouTube chat disconnected.';load()}catch(e){$('result').textContent=e.message}};
+async function load(){try{const r=await fetch(api('/api/config/status'));const s=await r.json();renderStatus(s);$('summary').textContent=`YouTube: ${s.youtube?.configured?'configured':'not configured'} · Stream output: ${s.stream?.outputConfigured?'configured':'not configured'} · FFmpeg: ${s.stream?.ffmpegAvailable?'available':'missing'}`; }catch(e){$('status').textContent='● BACKEND OFFLINE';$('status').className='status bad';$('result').textContent=e.message}}
+function renderStatus(s){const ready=Boolean(s.youtube?.configured&&s.stream?.outputConfigured);$('status').textContent=ready?'● READY':'● NEEDS SETUP';$('status').className='status '+(ready?'ok':'bad')}
+applyProfile('Balanced');load();
+</script>
+</body>
+</html>
