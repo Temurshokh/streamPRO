@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 import { ReconnectController } from './reconnect.js';
 import { StreamHealth } from './health.js';
 
@@ -14,9 +15,7 @@ export class StreamManager {
     this.health = new StreamHealth();
     this.intentionalStop = false;
     this.lastLaunch = null;
-    this.reconnect = new ReconnectController({
-      onRetry: (data) => this.emit({ type: 'reconnect', data })
-    });
+    this.reconnect = new ReconnectController({ onRetry: (data) => this.emit({ type: 'reconnect', data }) });
   }
 
   get status() {
@@ -33,10 +32,7 @@ export class StreamManager {
 
   start(config = {}) {
     if (this.process) throw new Error('Stream is already running');
-    if (!config.input || !config.output) {
-      throw new Error('Set STREAM_INPUT and STREAM_OUTPUT before starting FFmpeg');
-    }
-
+    if (!config.input || !config.output) throw new Error('Set STREAM_INPUT and STREAM_OUTPUT before starting FFmpeg');
     this.intentionalStop = false;
     this.reconnect.reset();
     this.currentConfig = { ...config };
@@ -49,31 +45,23 @@ export class StreamManager {
   spawnProcess() {
     const c = this.currentConfig;
     const ffmpegPath = c.ffmpegPath || 'ffmpeg';
+    const fps = Number(c.fps || 30);
+    const keyframe = Number(c.keyframe || 2);
+    const vf = c.overlayEnabled && this.overlayPath
+      ? `format=yuv420p,drawtext=textfile='${this.overlayPath.replaceAll('\\', '/').replaceAll(':', '\\:')}':reload=1:fontsize=${Number(c.overlayFontSize || 42)}:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=18:x=(w-text_w)/2:y=60`
+      : 'format=yuv420p';
+
     const args = [
-      '-hide_banner',
-      '-nostats',
-      '-loglevel', 'warning',
-      '-progress', 'pipe:2',
-      '-re',
-      '-stream_loop', '-1',
-      '-i', c.input,
-      '-vf', 'format=yuv420p',
-      '-r', String(c.fps),
-      '-s', `${c.width}x${c.height}`,
-      '-c:v', c.videoCodec || 'libx264',
-      '-preset', c.encoderPreset || 'veryfast',
-      '-tune', 'zerolatency',
-      '-b:v', c.bitrate,
-      '-maxrate', c.maxrate || c.bitrate,
-      '-bufsize', c.bufsize || c.bitrate,
-      '-g', String(Math.max(2, Math.round(c.fps * (c.keyframe || 2)))),
-      '-keyint_min', String(Math.max(2, Math.round(c.fps * (c.keyframe || 2)))),
-      '-sc_threshold', '0',
-      '-c:a', 'aac',
-      '-b:a', c.audioBitrate || '128k',
-      '-ar', '48000',
-      '-f', 'flv',
-      c.output
+      '-hide_banner', '-nostats', '-loglevel', 'warning', '-progress', 'pipe:2',
+      '-re', '-stream_loop', '-1', '-i', c.input,
+      '-vf', vf,
+      '-r', String(fps), '-s', `${c.width}x${c.height}`,
+      '-c:v', c.videoCodec || 'libx264', '-preset', c.encoderPreset || 'veryfast', '-tune', 'zerolatency',
+      '-b:v', c.bitrate, '-maxrate', c.maxrate || c.bitrate, '-bufsize', c.bufsize || c.bitrate,
+      '-g', String(Math.max(2, Math.round(fps * keyframe))), '-keyint_min', String(Math.max(2, Math.round(fps * keyframe))),
+      '-sc_threshold', '0', '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', c.audioBitrate || '128k', '-ar', '48000',
+      '-f', 'flv', c.output
     ];
 
     this.process = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -89,10 +77,8 @@ export class StreamManager {
       for (const line of lines) {
         const index = line.indexOf('=');
         if (index === -1) continue;
-        const key = line.slice(0, index);
-        const value = line.slice(index + 1);
-        progress[key] = value;
-        if (key === 'progress') {
+        progress[line.slice(0, index)] = line.slice(index + 1);
+        if (line.startsWith('progress=')) {
           this.health.ingestProgress({
             frame: progress.frame,
             fps: progress.fps,
@@ -133,13 +119,11 @@ export class StreamManager {
     });
   }
 
-  updateOverlay(text) {
-    this.writeOverlay(text);
-  }
+  updateOverlay(text) { this.writeOverlay(text); }
 
   writeOverlay(text = '') {
     if (!this.overlayPath) return;
-    fs.mkdirSync(new URL('.', `file://${this.overlayPath}`).pathname, { recursive: true });
+    fs.mkdirSync(path.dirname(this.overlayPath), { recursive: true });
     fs.writeFileSync(this.overlayPath, String(text).slice(0, 4000), 'utf8');
   }
 
@@ -147,16 +131,11 @@ export class StreamManager {
     this.intentionalStop = true;
     this.reconnect.cancel();
     this.lastLaunch = null;
-    if (!this.process) {
-      this.startedAt = null;
-      return this.status;
-    }
+    if (!this.process) { this.startedAt = null; return this.status; }
     this.process.kill('SIGTERM');
     this.startedAt = null;
     return this.status;
   }
 
-  emit(payload) {
-    this.onUpdate(payload);
-  }
+  emit(payload) { this.onUpdate(payload); }
 }
