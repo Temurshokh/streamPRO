@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "stable": { "quality": "720p", "fps": 30, "latency": "normal" },
+    "balanced": { "quality": "1080p", "fps": 30, "latency": "low" },
+    "realtime": { "quality": "1080p60", "fps": 60, "latency": "ultra" },
+    "quality": { "quality": "1440p", "fps": 30, "latency": "normal" }
+  },
+  "fpsOptions": [10, 15, 24, 30, 48, 60],
+  "qualityOptions": ["360p", "480p", "720p", "720p60", "1080p", "1080p60", "1440p", "1440p60", "2160p", "2160p60"],
+  "latencyOptions": ["normal", "low", "ultra"]
+}
