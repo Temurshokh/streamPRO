@@ -23,6 +23,11 @@ function outputUrl() {
   return `rtmps://a.rtmps.youtube.com:443/live2/${runtime.YOUTUBE_STREAM_KEY}`;
 }
 
+function ffmpegAvailable() {
+  const result = spawnSync(runtime.FFMPEG_PATH || 'ffmpeg', ['-version'], { stdio: 'ignore' });
+  return result.status === 0;
+}
+
 function overlayText() {
   const rows = game.leaderboard.length
     ? game.leaderboard.slice(0, 10).map((x, i) => `${i + 1}. ${x.flag || '🌐'} ${x.name}: ${x.count}`)
@@ -33,8 +38,8 @@ function overlayText() {
 function validateVideoSettings() {
   const mode = String(runtime.STREAM_LATENCY_MODE || 'normal');
   const width = Number(runtime.STREAM_WIDTH || 1920);
-  if (mode === 'ultra' && width > 1920) throw new Error('Ultra-low latency supports up to 1920px width in streamPRO.');
-  if (mode === 'low' && width >= 3840) throw new Error('Low latency is disabled for 4K in streamPRO.');
+  if (mode === 'ultra' && width > 1920) throw new Error('Очень низкая задержка в streamPRO ограничена 1080p или ниже.');
+  if (mode === 'low' && width >= 3840) throw new Error('Для 4K streamPRO использует обычную задержку.');
 }
 
 function ensureDemoSource() {
@@ -76,7 +81,7 @@ app.use(cors());
 app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.resolve('frontend')));
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'streamPRO', time: new Date().toISOString() }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'streamPRO', time: new Date().toISOString(), ffmpeg: ffmpegAvailable() ? 'ready' : 'missing' }));
 app.get('/api/state', (_req, res) => res.json({ game, stream: stream.status, youtube: youtube.status }));
 app.get('/api/config/status', (_req, res) => res.json({
   youtube: youtube.status,
@@ -84,45 +89,47 @@ app.get('/api/config/status', (_req, res) => res.json({
     outputConfigured: Boolean(outputUrl()),
     inputConfigured: Boolean(runtime.STREAM_INPUT || fs.existsSync(defaultSample)),
     ffmpegPath: runtime.FFMPEG_PATH || 'ffmpeg',
+    ffmpegAvailable: ffmpegAvailable(),
     demoSourceAvailable: fs.existsSync(defaultSample)
   },
   config: publicConfig(runtime)
 }));
 
 app.post('/api/config', (req, res) => {
-  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required. Set STUDIO_TOKEN on Render once.' });
+  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio. Добавь STUDIO_TOKEN в Render Environment.' });
   mergeRuntimeConfig(runtime, req.body?.config || {});
   rebuildYoutube();
   res.json({ ok: true, youtube: youtube.status, config: publicConfig(runtime) });
 });
 
 app.post('/api/config/clear', (req, res) => {
-  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' });
-  for (const key of ['YOUTUBE_API_KEY', 'YOUTUBE_OAUTH_ACCESS_TOKEN', 'YOUTUBE_STREAM_KEY', 'STREAM_OUTPUT']) runtime[key] = '';
+  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio.' });
+  for (const key of ['YOUTUBE_API_KEY','YOUTUBE_OAUTH_ACCESS_TOKEN','YOUTUBE_STREAM_KEY','STREAM_OUTPUT']) runtime[key] = '';
   rebuildYoutube();
   res.json({ ok: true, config: publicConfig(runtime) });
 });
 
 app.post('/api/config/test', async (req, res) => {
-  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' });
+  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio.' });
   try { res.json(await youtube.testConnection()); }
   catch (error) { res.status(400).json({ error: error.message }); }
 });
 
 app.post('/api/chat', (req, res) => res.json(handleChatMessage(req.body?.message, { author: 'local test' })));
-app.post('/api/chat/start', (req, res) => { if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' }); youtube.start(); res.json(youtube.status); });
-app.post('/api/chat/stop', (req, res) => { if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' }); youtube.stop(); res.json(youtube.status); });
+app.post('/api/chat/start', (req, res) => { if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio.' }); youtube.start(); res.json(youtube.status); });
+app.post('/api/chat/stop', (req, res) => { if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio.' }); youtube.stop(); res.json(youtube.status); });
 
 app.post('/api/stream/start', (req, res) => {
-  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' });
+  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio.' });
   try {
     mergeRuntimeConfig(runtime, req.body?.config || {});
     validateVideoSettings();
+    if (!ffmpegAvailable()) throw new Error('FFmpeg не установлен на backend. Render должен запускаться через Dockerfile из репозитория.');
     const input = runtime.STREAM_INPUT || defaultSample;
     const output = outputUrl();
-    if (!output) throw new Error('Add a YouTube Stream Key or a complete RTMPS Stream URL in Studio.');
+    if (!output) throw new Error('Добавь ключ трансляции YouTube. streamPRO сам соберёт RTMPS URL.');
     if (!runtime.STREAM_INPUT) ensureDemoSource();
-    if (!fs.existsSync(input)) throw new Error(`Input source not found: ${input}`);
+    if (!fs.existsSync(input)) throw new Error(`Источник не найден: ${input}`);
     const result = stream.start({
       ffmpegPath: runtime.FFMPEG_PATH || 'ffmpeg', input, output,
       width: Number(runtime.STREAM_WIDTH || 1920), height: Number(runtime.STREAM_HEIGHT || 1080),
@@ -139,7 +146,7 @@ app.post('/api/stream/start', (req, res) => {
 });
 
 app.post('/api/stream/stop', (req, res) => {
-  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' });
+  if (!studioAuthorized(req)) return res.status(401).json({ error: 'Нужен код доступа Studio.' });
   const result = stream.stop();
   if (!result.running) game.startedAt = null;
   res.json(result);
