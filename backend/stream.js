@@ -1,17 +1,22 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import path from 'node:path';
+import { ReconnectController } from './reconnect.js';
+import { StreamHealth } from './health.js';
 
 export class StreamManager {
-  constructor({ overlayPath = path.resolve('renderer/overlay.txt'), onUpdate } = {}) {
+  constructor({ overlayPath = null, onUpdate = () => {} } = {}) {
     this.process = null;
     this.startedAt = null;
     this.lastExit = null;
-    this.progress = {};
+    this.currentConfig = null;
     this.overlayPath = overlayPath;
     this.onUpdate = onUpdate;
-    this.shouldRestart = false;
-    this.config = null;
+    this.health = new StreamHealth();
+    this.intentionalStop = false;
+    this.lastLaunch = null;
+    this.reconnect = new ReconnectController({
+      onRetry: (data) => this.emit({ type: 'reconnect', data })
+    });
   }
 
   get status() {
@@ -20,109 +25,110 @@ export class StreamManager {
       startedAt: this.startedAt,
       pid: this.process?.pid ?? null,
       lastExit: this.lastExit,
-      fps: this.progress.fps ?? null,
-      bitrate: this.progress.bitrate ?? null,
-      speed: this.progress.speed ?? null,
-      frames: this.progress.frame ?? null
+      config: this.currentConfig,
+      health: this.health.snapshot,
+      reconnectAttempt: this.reconnect.attempt
     };
   }
 
-  writeOverlay(text) {
-    fs.mkdirSync(path.dirname(this.overlayPath), { recursive: true });
-    fs.writeFileSync(this.overlayPath, text, 'utf8');
-  }
-
-  start({ ffmpegPath = 'ffmpeg', input = null, output = null, width = 1920, height = 1080, fps = 30, bitrate = '4500k', fontFile = '', overlayText = 'streamPRO\\nWaiting for chat...' } = {}) {
+  start(config = {}) {
     if (this.process) throw new Error('Stream is already running');
-    if (!output) throw new Error('Set STREAM_OUTPUT to your YouTube RTMPS stream URL/key');
+    if (!config.input || !config.output) {
+      throw new Error('Set STREAM_INPUT and STREAM_OUTPUT before starting FFmpeg');
+    }
 
-    this.writeOverlay(overlayText);
-    this.config = { ffmpegPath, input, output, width, height, fps, bitrate, fontFile };
-    this.shouldRestart = true;
-    this.spawnProcess();
-    return this.status;
+    this.intentionalStop = false;
+    this.reconnect.reset();
+    this.currentConfig = { ...config };
+    this.lastLaunch = { ...config };
+    this.startedAt = new Date().toISOString();
+    this.writeOverlay(config.overlayText || '');
+    return this.spawnProcess();
   }
 
   spawnProcess() {
-    const { ffmpegPath, input, output, width, height, fps, bitrate, fontFile } = this.config;
-    const overlay = this.overlayPath.replaceAll('\\', '/');
-    const drawtext = [
-      'drawtext',
-      fontFile ? `fontfile='${fontFile.replaceAll('\\', '/')}'` : '',
-      `textfile='${overlay}'`,
-      'reload=1',
-      'x=70',
-      'y=70',
-      'fontsize=42',
-      'fontcolor=white',
-      'box=1',
-      'boxcolor=black@0.55',
-      'boxborderw=24'
-    ].filter(Boolean).join(':');
-
+    const c = this.currentConfig;
+    const ffmpegPath = c.ffmpegPath || 'ffmpeg';
     const args = [
-      '-hide_banner', '-loglevel', 'warning',
-      ...(input
-        ? ['-re', '-stream_loop', '-1', '-i', input]
-        : ['-f', 'lavfi', '-i', `testsrc2=size=${width}x${height}:rate=${fps}`]),
-      ...(input ? [] : ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100']),
-      '-vf', drawtext,
-      '-map', '0:v:0',
-      ...(input ? ['-map', '0:a:0?'] : ['-map', '1:a:0']),
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
-      '-tune', 'zerolatency',
-      '-pix_fmt', 'yuv420p',
-      '-r', String(fps),
-      '-g', String(fps * 2),
-      '-keyint_min', String(fps * 2),
-      '-b:v', bitrate,
-      '-maxrate', bitrate,
-      '-bufsize', bitrate,
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      '-ar', '44100',
-      '-f', 'flv',
+      '-hide_banner',
+      '-nostats',
+      '-loglevel', 'warning',
       '-progress', 'pipe:2',
-      output
+      '-re',
+      '-stream_loop', '-1',
+      '-i', c.input,
+      '-vf', 'format=yuv420p',
+      '-r', String(c.fps),
+      '-s', `${c.width}x${c.height}`,
+      '-c:v', c.videoCodec || 'libx264',
+      '-preset', c.encoderPreset || 'veryfast',
+      '-tune', 'zerolatency',
+      '-b:v', c.bitrate,
+      '-maxrate', c.maxrate || c.bitrate,
+      '-bufsize', c.bufsize || c.bitrate,
+      '-g', String(Math.max(2, Math.round(c.fps * (c.keyframe || 2)))),
+      '-keyint_min', String(Math.max(2, Math.round(c.fps * (c.keyframe || 2)))),
+      '-sc_threshold', '0',
+      '-c:a', 'aac',
+      '-b:a', c.audioBitrate || '128k',
+      '-ar', '48000',
+      '-f', 'flv',
+      c.output
     ];
 
     this.process = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
-    this.startedAt ||= new Date().toISOString();
-    this.progress = {};
-    this.emit();
+    this.health.start();
+    this.emit({ type: 'started', data: this.status });
 
-    let stderrBuffer = '';
+    let progress = {};
+    let buffer = '';
     this.process.stderr.on('data', (chunk) => {
-      stderrBuffer += chunk.toString();
-      const lines = stderrBuffer.split(/\r?\n/);
-      stderrBuffer = lines.pop() || '';
+      buffer += String(chunk);
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
       for (const line of lines) {
-        const separator = line.indexOf('=');
-        if (separator <= 0) continue;
-        const key = line.slice(0, separator).trim();
-        const value = line.slice(separator + 1).trim();
-        if (['frame', 'fps', 'bitrate', 'speed'].includes(key)) this.progress[key] = value;
+        const index = line.indexOf('=');
+        if (index === -1) continue;
+        const key = line.slice(0, index);
+        const value = line.slice(index + 1);
+        progress[key] = value;
+        if (key === 'progress') {
+          this.health.ingestProgress({
+            frame: progress.frame,
+            fps: progress.fps,
+            bitrate: progress.bitrate?.replace('kbits/s', ''),
+            dropFrames: progress.drop_frames,
+            speed: String(progress.speed || '').replace('x', '')
+          });
+          this.emit({ type: 'health', data: this.status });
+          progress = {};
+        }
       }
-      this.emit();
+      if (buffer.length > 4000) buffer = buffer.slice(-4000);
     });
 
     this.process.on('error', (error) => {
       this.lastExit = { error: error.message, at: new Date().toISOString() };
       this.process = null;
-      this.emit();
+      this.emit({ type: 'error', data: { message: error.message } });
+      if (!this.intentionalStop) this.scheduleReconnect();
     });
 
     this.process.on('exit', (code, signal) => {
       this.lastExit = { code, signal, at: new Date().toISOString() };
       this.process = null;
-      this.emit();
-      if (this.shouldRestart) {
-        setTimeout(() => {
-          if (this.shouldRestart && !this.process) this.spawnProcess();
-        }, 2500);
-      } else {
-        this.startedAt = null;
+      this.emit({ type: 'exit', data: this.lastExit });
+      if (!this.intentionalStop) this.scheduleReconnect();
+    });
+
+    return this.status;
+  }
+
+  scheduleReconnect() {
+    this.reconnect.schedule(() => {
+      if (!this.intentionalStop && !this.process && this.lastLaunch) {
+        this.currentConfig = { ...this.lastLaunch };
+        this.spawnProcess();
       }
     });
   }
@@ -131,14 +137,26 @@ export class StreamManager {
     this.writeOverlay(text);
   }
 
+  writeOverlay(text = '') {
+    if (!this.overlayPath) return;
+    fs.mkdirSync(new URL('.', `file://${this.overlayPath}`).pathname, { recursive: true });
+    fs.writeFileSync(this.overlayPath, String(text).slice(0, 4000), 'utf8');
+  }
+
   stop() {
-    this.shouldRestart = false;
-    if (!this.process) return this.status;
+    this.intentionalStop = true;
+    this.reconnect.cancel();
+    this.lastLaunch = null;
+    if (!this.process) {
+      this.startedAt = null;
+      return this.status;
+    }
     this.process.kill('SIGTERM');
+    this.startedAt = null;
     return this.status;
   }
 
-  emit() {
-    this.onUpdate?.(this.status);
+  emit(payload) {
+    this.onUpdate(payload);
   }
 }
