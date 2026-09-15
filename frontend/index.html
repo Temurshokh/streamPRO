@@ -5,81 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>streamPRO</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; background: #0b0c10; color: #f5f7fa; }
-    main { max-width: 1100px; margin: 0 auto; padding: 32px; }
-    header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
-    .brand { font-size: 28px; font-weight: 800; letter-spacing:-.04em; }
-    .status { padding:8px 12px; border-radius:999px; background:#191c22; }
-    .grid { display:grid; grid-template-columns: 1.5fr 1fr; gap:18px; }
-    .card { background:#12151b; border:1px solid #242833; border-radius:18px; padding:20px; box-shadow:0 10px 30px #0003; }
-    h2 { margin-top:0; }
-    button { border:0; border-radius:12px; padding:11px 16px; margin-right:8px; cursor:pointer; font-weight:700; }
-    .start { background:#e8eef7; color:#0b0c10; }
-    .stop { background:#2a2f39; color:#fff; }
-    input { width:100%; box-sizing:border-box; background:#0d1015; color:#fff; border:1px solid #2b313d; border-radius:12px; padding:12px; margin:8px 0; }
-    #countries div { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1f232c; }
-    .muted { color:#8f98a8; }
-    pre { white-space:pre-wrap; word-break:break-word; background:#0d1015; padding:12px; border-radius:12px; }
-    @media (max-width: 800px) { .grid { grid-template-columns:1fr; } main { padding:18px; } }
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f5f7fb;background:#07080c}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 0%,#202536 0,#0b0d13 35%,#06070a 70%);color:#f5f7fb}button,input{font:inherit}.shell{max-width:1280px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#fff,#8f9cff);box-shadow:0 10px 35px #8390ff33}.title{font-weight:850;font-size:24px;letter-spacing:-.04em}.sub{color:#8790a3;font-size:13px}.pill{padding:9px 13px;border:1px solid #252a36;background:#10131a;border-radius:999px;font-weight:800;font-size:12px}.pill.live{color:#b8ffce;border-color:#1e6b3b;background:#0c1c13}.layout{display:grid;grid-template-columns:1.55fr .9fr;gap:18px}.card{background:#0e1118cc;border:1px solid #222734;border-radius:22px;padding:20px;box-shadow:0 18px 60px #0005;backdrop-filter:blur(15px)}.hero{padding:0;overflow:hidden}.preview{aspect-ratio:16/9;background:linear-gradient(135deg,#111722,#080a0e);display:grid;place-items:center;position:relative}.preview iframe{width:100%;height:100%;border:0}.previewFallback{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px}.previewFallback strong{font-size:28px}.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #222734}.stat{padding:14px 16px;border-right:1px solid #222734}.stat:last-child{border-right:0}.stat b{display:block;font-size:17px}.stat span{color:#788196;font-size:11px;text-transform:uppercase;letter-spacing:.09em}.sectionTitle{font-weight:800;font-size:14px;color:#dfe3ec;margin-bottom:12px}.controls{display:flex;gap:10px;flex-wrap:wrap}.btn{border:1px solid #2a303e;background:#161a23;color:#fff;padding:11px 15px;border-radius:13px;font-weight:800;cursor:pointer}.btn:hover{filter:brightness(1.15)}.btn.start{background:#eef2ff;color:#080a10;border-color:#eef2ff}.btn.stop{background:#30161a;border-color:#58262d}.row{display:flex;justify-content:space-between;align-items:center;gap:14px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.input{width:100%;background:#090b10;color:#fff;border:1px solid #282e3b;border-radius:12px;padding:11px 12px}.countries{max-height:420px;overflow:auto}.country{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #1d222c}.countryName{display:flex;gap:9px;align-items:center}.count{font-variant-numeric:tabular-nums;font-weight:850}.chat{max-height:300px;overflow:auto}.msg{padding:9px 0;border-bottom:1px solid #1d222c}.msg b{font-size:12px}.msg span{display:block;color:#aab1bf;font-size:12px;margin-top:2px}.muted{color:#7e8799}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#9fa8b8;white-space:pre-wrap;word-break:break-word}.full{grid-column:1/-1}@media(max-width:900px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}@media(max-width:600px){.shell{padding:14px}.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.top{align-items:flex-start}.title{font-size:21px}}
   </style>
 </head>
 <body>
-<main>
-  <header>
-    <div class="brand">streamPRO</div>
-    <div id="status" class="status">● OFFLINE</div>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><div class="logo"></div><div><div class="title">streamPRO</div><div class="sub">server-driven YouTube streaming</div></div></div>
+    <div id="status" class="pill">● OFFLINE</div>
   </header>
-  <div class="grid">
-    <section class="card">
-      <h2>Stream Control</h2>
-      <p class="muted">The UI controls the backend. No database required for v0.1.</p>
-      <button class="start" id="start">Start stream</button>
-      <button class="stop" id="stop">Stop stream</button>
-      <p>PID: <span id="pid">—</span></p>
-      <p>Started: <span id="started">—</span></p>
+
+  <div class="layout">
+    <section class="card hero">
+      <div class="preview">
+        <iframe src="/overlay" title="stream overlay preview"></iframe>
+        <div class="previewFallback" id="previewFallback"><div><strong>Waiting for stream</strong><div class="muted">Start FFmpeg to send the scene to YouTube.</div></div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="fps">—</b><span>FPS</span></div>
+        <div class="stat"><b id="bitrate">—</b><span>Bitrate</span></div>
+        <div class="stat"><b id="speed">—</b><span>Speed</span></div>
+        <div class="stat"><b id="uptime">—</b><span>Uptime</span></div>
+      </div>
     </section>
+
+    <aside class="card">
+      <div class="sectionTitle">STREAM CONTROL</div>
+      <div class="controls"><button class="btn start" id="start">Start stream</button><button class="btn stop" id="stop">Stop</button></div>
+      <div style="height:16px"></div>
+      <div class="grid2">
+        <div><div class="muted">Process</div><b id="pid">—</b></div>
+        <div><div class="muted">YouTube chat</div><b id="yt">—</b></div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="mono" id="error">No errors.</div>
+    </aside>
+
     <section class="card">
-      <h2>Chat → Game</h2>
-      <form id="chatForm">
-        <input id="chat" placeholder="Type a country, e.g. Uzbekistan" autocomplete="off" />
-        <button class="start">Send test message</button>
-      </form>
-      <p class="muted">This simulates a YouTube chat message until the YouTube API adapter is added.</p>
-      <p>Last message: <strong id="last">—</strong></p>
+      <div class="sectionTitle">CHAT → GAME</div>
+      <form id="chatForm" class="row"><input class="input" id="chat" placeholder="Write a country, e.g. Uzbekistan" autocomplete="off"/><button class="btn start">Send</button></form>
+      <div style="height:12px"></div>
+      <div class="mono" id="last">No accepted country yet.</div>
     </section>
+
     <section class="card">
-      <h2>Countries</h2>
-      <div id="countries"></div>
+      <div class="sectionTitle">COUNTRY LEADERBOARD</div>
+      <div id="countries" class="countries"><div class="muted">No countries yet.</div></div>
     </section>
-    <section class="card">
-      <h2>Backend</h2>
-      <pre id="log">Connecting…</pre>
+
+    <section class="card full">
+      <div class="row"><div class="sectionTitle">LIVE CHAT</div><div class="muted" id="messages">0 messages</div></div>
+      <div id="chatList" class="chat"><div class="muted">Waiting for YouTube messages…</div></div>
     </section>
   </div>
-</main>
+</div>
 <script>
-const $ = (id) => document.getElementById(id);
-const render = (state) => {
-  const s = state.stream;
-  $('status').textContent = s.running ? '● LIVE' : '● OFFLINE';
-  $('pid').textContent = s.pid ?? '—';
-  $('started').textContent = s.startedAt ?? '—';
-  $('last').textContent = state.game.lastMessage ?? '—';
-  const entries = Object.entries(state.game.countries).sort((a,b) => b[1] - a[1]);
-  $('countries').innerHTML = entries.length ? entries.map(([name,count]) => `<div><span>${escapeHtml(name)}</span><strong>${count}</strong></div>`).join('') : '<span class="muted">No messages yet</span>';
-  $('log').textContent = JSON.stringify(state, null, 2);
-};
-const escapeHtml = (text) => String(text).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'&#92;','"':'&quot;'}[c]));
-async function refresh() { const r = await fetch('/api/state'); render(await r.json()); }
-$('start').onclick = async () => { await fetch('/api/stream/start', {method:'POST'}); refresh(); };
-$('stop').onclick = async () => { await fetch('/api/stream/stop', {method:'POST'}); refresh(); };
-$('chatForm').onsubmit = async (e) => { e.preventDefault(); const message = $('chat').value.trim(); if (!message) return; await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message})}); $('chat').value=''; };
-const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
-const ws = new WebSocket(wsUrl);
-ws.onmessage = (event) => { const payload = JSON.parse(event.data); if (payload.type === 'state') render(payload.data); else refresh(); };
-ws.onopen = () => { $('log').textContent = 'WebSocket connected'; refresh(); };
-ws.onclose = () => { $('log').textContent = 'WebSocket disconnected'; };
+const $=id=>document.getElementById(id);
+const feed=[];let state=null;
+const escapeHtml=s=>String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'&#92;','"':'&quot;'}[c]));
+function render(next){state=next;if(!next)return;const s=next.stream;const running=Boolean(s.running);$('status').textContent=running?'● LIVE':'● OFFLINE';$('status').className='pill'+(running?' live':'');$('previewFallback').style.display=running?'none':'grid';$('pid').textContent=s.pid??'—';$('fps').textContent=s.fps??'—';$('bitrate').textContent=s.bitrate??'—';$('speed').textContent=s.speed??'—';$('yt').textContent=next.youtube?.running?'CONNECTED':(next.youtube?.configured?'READY':'OFF');$('error').textContent=next.youtube?.lastError||s.lastExit?.error||'No errors.';const entries=next.game.leaderboard||[];$('countries').innerHTML=entries.length?entries.map(x=>`<div class="country"><div class="countryName"><span>${escapeHtml(x.flag)}</span><span>${escapeHtml(x.name)}</span></div><span class="count">${x.count.toLocaleString()}</span></div>`).join(''):'<div class="muted">No countries yet.</div>';$('messages').textContent=`${next.game.totalMessages} messages · ${next.game.acceptedMessages} accepted`;if(next.game.lastAccepted){const a=next.game.lastAccepted;$('last').textContent=`${a.flag} ${a.country} +1${a.author?' · '+a.author:''}`}}
+function uptime(iso){if(!iso)return '—';return Math.max(0,Math.floor((Date.now()-new Date(iso))/1000))}
+setInterval(()=>{if(state&&state.stream.running){const t=uptime(state.stream.startedAt);$('uptime').textContent=[Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(n=>String(n).padStart(2,'0')).join(':')}},1000);
+async function refresh(){const r=await fetch('/api/state');render(await r.json())}
+$('start').onclick=async()=>{const r=await fetch('/api/stream/start',{method:'POST'});if(!r.ok)alert((await r.json()).error||'Could not start stream');refresh()};$('stop').onclick=async()=>{await fetch('/api/stream/stop',{method:'POST'});refresh()};$('chatForm').onsubmit=async e=>{e.preventDefault();const message=$('chat').value.trim();if(!message)return;await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});$('chat').value='';};
+const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}`);ws.onmessage=event=>{const p=JSON.parse(event.data);if(p.type==='chat:message'){feed.unshift(p.data);feed.splice(20);$('chatList').innerHTML=feed.map(x=>`<div class="msg"><b>${escapeHtml(x.author||'YouTube user')}</b><span>${escapeHtml(x.message)}</span></div>`).join('')}refresh()};ws.onopen=refresh;ws.onclose=()=>{};refresh();
 </script>
 </body>
 </html>
