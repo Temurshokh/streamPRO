@@ -65,13 +65,7 @@ function rebuildYoutube() {
     videoId: runtime.YOUTUBE_VIDEO_ID,
     liveChatId: runtime.YOUTUBE_LIVE_CHAT_ID,
     intervalMs: runtime.CHAT_POLL_INTERVAL_MS,
-    onMessage: async msg => {
-      const result = applyChatMessage(game, msg.message, msg);
-      stream.updateOverlay(overlayText());
-      broadcast({ type: 'game:update', data: game });
-      broadcast({ type: 'chat:message', data: msg });
-      return result;
-    },
+    onMessage: async msg => handleChatMessage(msg.message, msg),
     onStatus: data => broadcast({ type: 'youtube:update', data })
   });
   if (String(runtime.CHAT_POLL).toLowerCase() !== 'false' && hasConfiguredYoutube(runtime)) youtube.start();
@@ -115,7 +109,7 @@ app.post('/api/config/test', async (req, res) => {
   catch (error) { res.status(400).json({ error: error.message }); }
 });
 
-app.post('/api/chat', (req, res) => res.json(applyChatMessage(game, req.body?.message, { author: 'local test' })));
+app.post('/api/chat', (req, res) => res.json(handleChatMessage(req.body?.message, { author: 'local test' })));
 app.post('/api/chat/start', (req, res) => { if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' }); youtube.start(); res.json(youtube.status); });
 app.post('/api/chat/stop', (req, res) => { if (!studioAuthorized(req)) return res.status(401).json({ error: 'Studio authorization required.' }); youtube.stop(); res.json(youtube.status); });
 
@@ -130,22 +124,14 @@ app.post('/api/stream/start', (req, res) => {
     if (!runtime.STREAM_INPUT) ensureDemoSource();
     if (!fs.existsSync(input)) throw new Error(`Input source not found: ${input}`);
     const result = stream.start({
-      ffmpegPath: runtime.FFMPEG_PATH || 'ffmpeg',
-      input,
-      output,
-      width: Number(runtime.STREAM_WIDTH || 1920),
-      height: Number(runtime.STREAM_HEIGHT || 1080),
-      fps: Number(runtime.STREAM_FPS || 30),
-      bitrate: runtime.STREAM_BITRATE || '4500k',
-      maxrate: runtime.STREAM_BITRATE || '4500k',
-      bufsize: runtime.STREAM_BITRATE || '4500k',
-      keyframe: Number(runtime.STREAM_KEYFRAME || 2),
-      audioBitrate: runtime.STREAM_AUDIO_BITRATE || '128k',
-      videoCodec: runtime.STREAM_CODEC || 'libx264',
-      encoderPreset: runtime.STREAM_PRESET || 'veryfast',
+      ffmpegPath: runtime.FFMPEG_PATH || 'ffmpeg', input, output,
+      width: Number(runtime.STREAM_WIDTH || 1920), height: Number(runtime.STREAM_HEIGHT || 1080),
+      fps: Number(runtime.STREAM_FPS || 30), bitrate: runtime.STREAM_BITRATE || '4500k',
+      maxrate: runtime.STREAM_BITRATE || '4500k', bufsize: runtime.STREAM_BITRATE || '4500k',
+      keyframe: Number(runtime.STREAM_KEYFRAME || 2), audioBitrate: runtime.STREAM_AUDIO_BITRATE || '128k',
+      videoCodec: runtime.STREAM_CODEC || 'libx264', encoderPreset: runtime.STREAM_PRESET || 'veryfast',
       overlayEnabled: runtime.STREAM_OVERLAY_ENABLED !== false,
-      fontFile: runtime.FFMPEG_FONT_FILE || defaultFont,
-      overlayText: overlayText()
+      fontFile: runtime.FFMPEG_FONT_FILE || defaultFont, overlayText: overlayText()
     });
     game.startedAt = result.startedAt;
     res.json(result);
@@ -160,6 +146,13 @@ app.post('/api/stream/stop', (req, res) => {
 });
 
 app.get('/overlay', (_req, res) => res.sendFile(path.resolve('frontend/overlay.html')));
+
+function handleChatMessage(message, meta = {}) {
+  const result = applyChatMessage(game, message, meta);
+  stream.updateOverlay(overlayText());
+  broadcast({ type: 'game:update', data: game });
+  return result;
+}
 
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`streamPRO backend listening on port ${port}`);
